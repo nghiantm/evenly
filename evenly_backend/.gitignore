@@ -34,3 +34,6 @@ build/
 
 ### ENV ###
 src/main/resources/env.properties
+
+### DSStore ###
+src/main/java/com/evenly/.DS_Store

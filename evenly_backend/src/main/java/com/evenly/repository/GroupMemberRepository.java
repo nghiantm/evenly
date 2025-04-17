@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> {
     List<GroupMember> findByGroupId(String groupId);
+    boolean existsByGroupIdAndUserId(String groupId, String userId);
 }

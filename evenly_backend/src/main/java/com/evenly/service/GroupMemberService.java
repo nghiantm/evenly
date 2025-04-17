@@ -33,4 +33,8 @@ public class GroupMemberService {
         return userInfoRepository.findUserProfileDtoByEmail(userIds);
     }
 
+    public boolean isMember(@RequestParam String groupId, @RequestParam String userId) {
+        return groupMemberRepository.existsByGroupIdAndUserId(groupId, userId);
+    }
+
 }

@@ -15,6 +15,10 @@ public class ExpenseService {
     @Autowired
     ExpenseRepository expenseRepository;
 
+    public Expense getExpense(String expenseId) {
+        return expenseRepository.findById(expenseId).orElse(null);
+    }
+
     public Expense addExpense(EqualExpenseCreateRequestDTO expense) {
         Expense newExpense = new Expense();
         newExpense.setGroupId(expense.getGroupId());

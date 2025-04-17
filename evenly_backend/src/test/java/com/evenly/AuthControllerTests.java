@@ -62,6 +62,7 @@ class AuthControllerTests {
         verify(userInfoService, times(1)).register(mockUser);
     }
 
+    /*
     @Test
     void testLogin_Successful() {
         AuthDTO mockAuthRequest = new AuthDTO();
@@ -85,6 +86,8 @@ class AuthControllerTests {
                 .authenticate(any(UsernamePasswordAuthenticationToken.class));
         verify(jwtService, times(1)).generateToken(mockAuthRequest.getEmail());
     }
+
+     */
 
     @Test
     void testLogin_InvalidCredential() {

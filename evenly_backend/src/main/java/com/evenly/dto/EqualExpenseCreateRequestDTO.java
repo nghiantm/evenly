@@ -7,11 +7,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ExpenseCreateRequestDTO {
+public class EqualExpenseCreateRequestDTO {
     private String groupId;
 
     private String paidBy;
@@ -21,4 +22,6 @@ public class ExpenseCreateRequestDTO {
     private BigDecimal amount;
 
     private String description;
+
+    private List<String> userIds;
 }

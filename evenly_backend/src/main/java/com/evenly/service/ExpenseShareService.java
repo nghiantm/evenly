@@ -1,12 +1,12 @@
 package com.evenly.service;
 
-import com.evenly.dto.ExpenseShareCreateRequestDTO;
 import com.evenly.entity.ExpenseShare;
 import com.evenly.repository.ExpenseShareRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.math.BigDecimal;
+import java.util.Map;
 
 @Service
 public class ExpenseShareService {
@@ -14,12 +14,12 @@ public class ExpenseShareService {
     @Autowired
     ExpenseShareRepository expenseShareRepository;
 
-    public void save(List<ExpenseShareCreateRequestDTO> shareList) {
-        for (ExpenseShareCreateRequestDTO share : shareList) {
+    public void save(Map<String, BigDecimal> dividedAmounts, String expenseId) {
+        for (String key : dividedAmounts.keySet()) {
             ExpenseShare expenseShare = new ExpenseShare();
-            expenseShare.setExpenseId(share.getExpenseId());
-            expenseShare.setUserId(share.getUserId());
-            expenseShare.setAmount(share.getAmount());
+            expenseShare.setExpenseId(expenseId);
+            expenseShare.setUserId(key);
+            expenseShare.setAmount(dividedAmounts.get(key));
             expenseShareRepository.save(expenseShare);
         }
     }

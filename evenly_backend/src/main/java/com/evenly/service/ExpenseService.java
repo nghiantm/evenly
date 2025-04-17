@@ -1,6 +1,6 @@
 package com.evenly.service;
 
-import com.evenly.dto.ExpenseCreateRequestDTO;
+import com.evenly.dto.EqualExpenseCreateRequestDTO;
 import com.evenly.entity.Expense;
 import com.evenly.repository.ExpenseRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +15,7 @@ public class ExpenseService {
     @Autowired
     ExpenseRepository expenseRepository;
 
-    public Expense addExpense(ExpenseCreateRequestDTO expense) {
+    public Expense addExpense(EqualExpenseCreateRequestDTO expense) {
         Expense newExpense = new Expense();
         newExpense.setGroupId(expense.getGroupId());
         newExpense.setPaidBy(expense.getPaidBy());

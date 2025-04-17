@@ -7,16 +7,17 @@ import com.evenly.entity.Expense;
 import com.evenly.service.ExpenseService;
 import com.evenly.service.ExpenseShareService;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
 import java.util.Map;
 
 @RestController
+@Transactional
 @RequestMapping("/expense")
 public class ExpenseController {
 
@@ -52,6 +53,7 @@ public class ExpenseController {
     @DeleteMapping
     public ResponseEntity<HttpStatus> deleteExpense(@RequestParam("expenseId") String expenseId) {
         expenseService.deleteExpense(expenseId);
+        expenseShareService.delete(expenseId);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 }

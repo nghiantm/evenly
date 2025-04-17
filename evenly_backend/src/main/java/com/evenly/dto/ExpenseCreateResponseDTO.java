@@ -4,6 +4,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+import java.sql.Date;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -14,9 +17,9 @@ public class ExpenseCreateResponseDTO {
 
     private String paidBy;
 
-    private String amount;
+    private BigDecimal amount;
 
     private String description;
 
-    private String createdDate;
+    private Date createdDate;
 }

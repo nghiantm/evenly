@@ -1,14 +1,20 @@
 package com.evenly.controller;
 
-import com.evenly.dto.ExpenseCreateRequestDTO;
+import com.evenly.Utility.DivideUtility;
+import com.evenly.dto.EqualExpenseCreateRequestDTO;
 import com.evenly.dto.ExpenseCreateResponseDTO;
 import com.evenly.entity.Expense;
 import com.evenly.service.ExpenseService;
+import com.evenly.service.ExpenseShareService;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/expense")
@@ -17,11 +23,14 @@ public class ExpenseController {
     @Autowired
     private ExpenseService expenseService;
 
-    @PostMapping
+    @Autowired
+    private ExpenseShareService expenseShareService;
+
+    @PostMapping("/equal")
     @Operation(
             summary = "Create an expense for an user in a group"
     )
-    public ResponseEntity<ExpenseCreateResponseDTO> addExpense(@RequestBody ExpenseCreateRequestDTO expense) {
+    public ResponseEntity<ExpenseCreateResponseDTO> addExpenseEqual(@RequestBody EqualExpenseCreateRequestDTO expense) {
         Expense createdExpense = expenseService.addExpense(expense);
         ExpenseCreateResponseDTO responseDTO = new ExpenseCreateResponseDTO();
         responseDTO.setId(createdExpense.getId());
@@ -30,6 +39,9 @@ public class ExpenseController {
         responseDTO.setAmount(createdExpense.getAmount());
         responseDTO.setDescription(createdExpense.getDescription());
         responseDTO.setCreatedDate(createdExpense.getCreatedDate());
+
+        Map<String, BigDecimal> dividedAmounts = DivideUtility.equalDivide(expense.getUserIds(), expense.getAmount());
+        expenseShareService.save(dividedAmounts, createdExpense.getId());
 
         return new ResponseEntity<>(
                 responseDTO,

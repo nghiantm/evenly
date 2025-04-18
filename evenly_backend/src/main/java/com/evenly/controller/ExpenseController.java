@@ -5,10 +5,7 @@ import com.evenly.dto.EqualExpenseCreateRequestDTO;
 import com.evenly.dto.ExpenseCreateResponseDTO;
 import com.evenly.entity.Expense;
 import com.evenly.exception.InvalidCredentialException;
-import com.evenly.service.ExpenseService;
-import com.evenly.service.ExpenseShareService;
-import com.evenly.service.GroupMemberService;
-import com.evenly.service.JwtService;
+import com.evenly.service.*;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +31,9 @@ public class ExpenseController {
     private GroupMemberService groupMemberService;
 
     @Autowired
+    private BalanceService balanceService;
+
+    @Autowired
     private JwtService jwtService;
 
     @PostMapping("/equal")
@@ -57,6 +57,8 @@ public class ExpenseController {
 
         Map<String, BigDecimal> dividedAmounts = DivideUtility.equalDivide(expense.getUserIds(), expense.getAmount());
         expenseShareService.save(dividedAmounts, createdExpense.getId());
+
+        balanceService.save(dividedAmounts, createdExpense.getPaidBy(), expense.getGroupId());
 
         return new ResponseEntity<>(
                 responseDTO,

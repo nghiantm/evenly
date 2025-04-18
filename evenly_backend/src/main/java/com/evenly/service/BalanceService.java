@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -33,7 +34,19 @@ public class BalanceService {
                 } else {
                     // balance exists in opposite direction -> subtract update
                     balance = balanceRepository.findByGroupIdAndUserIdAndOwnedTo(groupId, ownedTo, key);
-                    balance.setAmount(balance.getAmount().subtract(dividedAmounts.get(key)));
+                    BigDecimal subtractResult = balance.getAmount().subtract(dividedAmounts.get(key));
+                    if (subtractResult.compareTo(BigDecimal.ZERO) < 0) {
+                        balanceRepository.deleteByGroupIdAndUserIdAndOwnedTo(groupId, ownedTo, key);
+                        balance = new Balance();
+                        balance.setGroupId(groupId);
+                        balance.setUserId(key);
+                        balance.setOwnedTo(ownedTo);
+                        balance.setAmount(subtractResult.abs());
+                    } else if (subtractResult.compareTo(BigDecimal.ZERO) > 0) {
+                        balance.setAmount(balance.getAmount().subtract(dividedAmounts.get(key)));
+                    } else {
+                        balanceRepository.deleteByGroupIdAndUserIdAndOwnedTo(groupId, ownedTo, key);
+                    }
                 }
             } else {
                 // balance exist -> update
@@ -43,5 +56,9 @@ public class BalanceService {
 
             balanceRepository.save(balance);
         }
+    }
+
+    public List<Balance> getBalance(String groupId) {
+        return balanceRepository.findAllByGroupId(groupId);
     }
 }

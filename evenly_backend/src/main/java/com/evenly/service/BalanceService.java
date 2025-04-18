@@ -23,12 +23,18 @@ public class BalanceService {
             Balance balance;
 
             if (!balanceRepository.existsByGroupIdAndUserIdAndOwnedTo(groupId, key, ownedTo)) {
-                // balance doesn't exist -> create new balance
-                balance = new Balance();
-                balance.setGroupId(groupId);
-                balance.setUserId(key);
-                balance.setOwnedTo(ownedTo);
-                balance.setAmount(dividedAmounts.get(key));
+                if (!balanceRepository.existsByGroupIdAndUserIdAndOwnedTo(groupId, ownedTo, key)) {
+                    // balance doesn't exist -> create new balance
+                    balance = new Balance();
+                    balance.setGroupId(groupId);
+                    balance.setUserId(key);
+                    balance.setOwnedTo(ownedTo);
+                    balance.setAmount(dividedAmounts.get(key));
+                } else {
+                    // balance exists in opposite direction -> subtract update
+                    balance = balanceRepository.findByGroupIdAndUserIdAndOwnedTo(groupId, ownedTo, key);
+                    balance.setAmount(balance.getAmount().subtract(dividedAmounts.get(key)));
+                }
             } else {
                 // balance exist -> update
                 balance = balanceRepository.findByGroupIdAndUserIdAndOwnedTo(groupId, key, ownedTo);

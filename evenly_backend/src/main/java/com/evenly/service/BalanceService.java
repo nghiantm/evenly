@@ -2,6 +2,7 @@ package com.evenly.service;
 
 import com.evenly.entity.Balance;
 import com.evenly.repository.BalanceRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -15,47 +16,63 @@ public class BalanceService {
     @Autowired
     BalanceRepository balanceRepository;
 
-    public void save(Map<String, BigDecimal> dividedAmounts, String ownedTo, String groupId) {
-        for (String key : dividedAmounts.keySet()) {
-            if (key.equals(ownedTo)) {
+    @Transactional
+    public void save(Map<String, BigDecimal> dividedAmounts, String paidBy, String groupId) {
+        saveHelper(dividedAmounts, paidBy, groupId);
+    }
+
+    private void saveHelper(Map<String, BigDecimal> dividedAmounts, String paidBy, String groupId) {
+        for (Map.Entry<String, BigDecimal> entry : dividedAmounts.entrySet()) {
+            String userId = entry.getKey();
+            BigDecimal amount = entry.getValue();
+
+            if (userId.equals(paidBy)) {
                 continue;
             }
 
-            Balance balance;
+            // Check if there's an existing balance in either direction
+            Balance userOwesToPayer = balanceRepository
+                    .findByGroupIdAndUserIdAndOwnedTo(groupId, userId, paidBy);
 
-            if (!balanceRepository.existsByGroupIdAndUserIdAndOwnedTo(groupId, key, ownedTo)) {
-                if (!balanceRepository.existsByGroupIdAndUserIdAndOwnedTo(groupId, ownedTo, key)) {
-                    // balance doesn't exist -> create new balance
-                    balance = new Balance();
-                    balance.setGroupId(groupId);
-                    balance.setUserId(key);
-                    balance.setOwnedTo(ownedTo);
-                    balance.setAmount(dividedAmounts.get(key));
-                } else {
-                    // balance exists in opposite direction -> subtract update
-                    balance = balanceRepository.findByGroupIdAndUserIdAndOwnedTo(groupId, ownedTo, key);
-                    BigDecimal subtractResult = balance.getAmount().subtract(dividedAmounts.get(key));
-                    if (subtractResult.compareTo(BigDecimal.ZERO) < 0) {
-                        balanceRepository.deleteByGroupIdAndUserIdAndOwnedTo(groupId, ownedTo, key);
-                        balance = new Balance();
-                        balance.setGroupId(groupId);
-                        balance.setUserId(key);
-                        balance.setOwnedTo(ownedTo);
-                        balance.setAmount(subtractResult.abs());
-                    } else if (subtractResult.compareTo(BigDecimal.ZERO) > 0) {
-                        balance.setAmount(balance.getAmount().subtract(dividedAmounts.get(key)));
-                    } else {
-                        balanceRepository.deleteByGroupIdAndUserIdAndOwnedTo(groupId, ownedTo, key);
-                    }
-                }
+            if (userOwesToPayer != null) {
+                // User already owes money to payer - just add to it
+                userOwesToPayer.setAmount(userOwesToPayer.getAmount().add(amount));
+                balanceRepository.save(userOwesToPayer);
             } else {
-                // balance exist -> update
-                balance = balanceRepository.findByGroupIdAndUserIdAndOwnedTo(groupId, key, ownedTo);
-                balance.setAmount(balance.getAmount().add(dividedAmounts.get(key)));
-            }
+                Balance payerOwesToUser = balanceRepository
+                        .findByGroupIdAndUserIdAndOwnedTo(groupId, paidBy, userId);
 
-            balanceRepository.save(balance);
+                if (payerOwesToUser != null) {
+                    // Payer owes user money - need to subtract
+                    BigDecimal newAmount = payerOwesToUser.getAmount().subtract(amount);
+
+                    if (newAmount.compareTo(BigDecimal.ZERO) > 0) {
+                        // Payer still owes user
+                        payerOwesToUser.setAmount(newAmount);
+                        balanceRepository.save(payerOwesToUser);
+                    } else if (newAmount.compareTo(BigDecimal.ZERO) < 0) {
+                        // Direction changes - now user owes payer
+                        balanceRepository.delete(payerOwesToUser);
+                        createNewBalance(groupId, userId, paidBy, newAmount.abs());
+                    } else {
+                        // Balance is zero - remove the record
+                        balanceRepository.delete(payerOwesToUser);
+                    }
+                } else {
+                    // No existing balance - create new
+                    createNewBalance(groupId, userId, paidBy, amount);
+                }
+            }
         }
+    }
+
+    private void createNewBalance(String groupId, String userId, String ownedTo, BigDecimal amount) {
+        Balance balance = new Balance();
+        balance.setGroupId(groupId);
+        balance.setUserId(userId);
+        balance.setOwnedTo(ownedTo);
+        balance.setAmount(amount);
+        balanceRepository.save(balance);
     }
 
     public List<Balance> getBalance(String groupId) {

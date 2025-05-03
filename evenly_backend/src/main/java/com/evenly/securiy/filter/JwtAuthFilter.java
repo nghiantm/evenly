@@ -1,4 +1,4 @@
-package com.evenly.filter;
+package com.evenly.securiy.filter;
 
 import com.evenly.service.JwtService;
 import com.evenly.service.UserInfoService;

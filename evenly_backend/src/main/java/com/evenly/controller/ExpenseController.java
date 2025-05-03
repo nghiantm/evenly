@@ -1,12 +1,16 @@
 package com.evenly.controller;
 
-import com.evenly.Utility.DivideUtility;
+import com.evenly.Utility.ExpenseUtility;
 import com.evenly.dto.EqualExpenseCreateRequestDTO;
 import com.evenly.dto.ExpenseCreateResponseDTO;
 import com.evenly.entity.Expense;
-import com.evenly.exception.InvalidCredentialException;
+import com.evenly.entity.ExpenseShare;
 import com.evenly.service.*;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -15,6 +19,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -40,8 +45,24 @@ public class ExpenseController {
     @PostMapping("/equal")
     @PreAuthorize("@groupAuthService.isMemberOfGroup(#expense.groupId) && @groupAuthService.areMembersOfGroup(#expense.groupId, #expense.userIds)")
     @Operation(
-            summary = "Create an expense for an user in a group"
+            summary = "Divide amount equally between specified users"
     )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "201",
+                    description = "Expense created successfully",
+                    content = {
+                            @Content(mediaType = "application/json", schema = @Schema(implementation = Expense.class))
+                    }
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "One of users isn't in group",
+                    content = {
+                            @Content(mediaType = "none")
+                    }
+            )
+    })
     public ResponseEntity<ExpenseCreateResponseDTO> addExpenseEqual(@RequestBody EqualExpenseCreateRequestDTO expense) {
         Expense createdExpense = expenseService.addExpense(expense);
 
@@ -54,7 +75,7 @@ public class ExpenseController {
                 createdExpense.getCreatedDate()
         );
 
-        Map<String, BigDecimal> dividedAmounts = DivideUtility.equalDivide(expense.getUserIds(), expense.getAmount());
+        Map<String, BigDecimal> dividedAmounts = ExpenseUtility.equalDivide(expense.getUserIds(), expense.getAmount());
         expenseShareService.save(dividedAmounts, createdExpense.getId());
 
         balanceService.save(dividedAmounts, createdExpense.getPaidBy(), expense.getGroupId());
@@ -66,15 +87,16 @@ public class ExpenseController {
     }
 
     @DeleteMapping
-    public ResponseEntity<HttpStatus> deleteExpense(@RequestHeader("Authorization") String authorizationHeader, @RequestParam("expenseId") String expenseId) {
-        String userId = jwtService.extractUsername(authorizationHeader.substring(7));
-        Expense expenseToBeDeleted = expenseService.getExpense(expenseId);
-        if (expenseToBeDeleted == null || !groupMemberService.isMember(expenseToBeDeleted.getGroupId(), userId)) {
-            throw new InvalidCredentialException("Invalid credential.");
-        }
+    @PreAuthorize("@groupAuthService.isMemberOfExpenseGroup(#expenseId)")
+    public ResponseEntity<HttpStatus> deleteExpense(@RequestParam("expenseId") String expenseId) {
+        Expense deletedExpense = expenseService.get(expenseId);
+        expenseService.delete(expenseId);
 
-        expenseService.deleteExpense(expenseId);
+        List<ExpenseShare> deletedShares = expenseShareService.getShares(expenseId);
         expenseShareService.delete(expenseId);
+        Map<String, BigDecimal> dividedAmounts = ExpenseUtility.expenseSharesToDividedAmounts(deletedShares);
+
+        balanceService.reverse(dividedAmounts, deletedExpense.getPaidBy(), deletedExpense.getGroupId());
         return new ResponseEntity<>(HttpStatus.OK);
     }
 }

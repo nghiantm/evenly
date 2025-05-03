@@ -1,6 +1,7 @@
 package com.evenly.securiy.service;
 
 import com.evenly.Utility.SecurityUtility;
+import com.evenly.service.ExpenseService;
 import com.evenly.service.GroupMemberService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -13,6 +14,9 @@ public class GroupAuthService {
     @Autowired
     private GroupMemberService groupMemberService;
 
+    @Autowired
+    private ExpenseService expenseService;
+
     /**
      * Checks if the current authenticated user is a member of the specified group.
      *
@@ -21,6 +25,20 @@ public class GroupAuthService {
      */
     public boolean isMemberOfGroup(String groupId) {
         return groupMemberService.isMember(groupId, SecurityUtility.getUserId());
+    }
+
+    /**
+     * Verifies if the current authenticated user is a member of the specified group
+     * associated with an expense.
+     *
+     * This method is used to enforce group membership validation for actions related to expenses.
+     * It ensures that the user performing the action belongs to the group of the given expense.
+     *
+     * @param expenseId The ID of the expense.
+     * @return true if the authenticated user is a member of the group, false otherwise.
+     */
+    public boolean isMemberOfExpenseGroup(String expenseId) {
+        return groupMemberService.isMember(expenseService.get(expenseId).getGroupId(), SecurityUtility.getUserId());
     }
 
     /**

@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -22,6 +23,10 @@ public class ExpenseShareService {
             expenseShare.setAmount(dividedAmounts.get(key));
             expenseShareRepository.save(expenseShare);
         }
+    }
+
+    public List<ExpenseShare> getShares(String expenseId) {
+        return expenseShareRepository.getAllByExpenseId(expenseId);
     }
 
     public void delete(String expenseId) {

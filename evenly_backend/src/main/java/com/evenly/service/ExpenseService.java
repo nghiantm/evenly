@@ -16,8 +16,11 @@ public class ExpenseService {
     @Autowired
     ExpenseRepository expenseRepository;
 
-    public Expense getExpense(String expenseId) {
-        return expenseRepository.findById(expenseId).orElse(null);
+    public Expense get(String expenseId) {
+        if (!expenseRepository.existsById(expenseId)) {
+            throw new IllegalArgumentException("Expense with id " + expenseId + " not found");
+        }
+        return expenseRepository.getExpenseById(expenseId);
     }
 
     public Expense addExpense(EqualExpenseCreateRequestDTO expense) {
@@ -31,7 +34,10 @@ public class ExpenseService {
         return expenseRepository.save(newExpense);
     }
 
-    public void deleteExpense(String expenseId) {
-        expenseRepository.deleteById(expenseId);
+    public void delete(String expenseId) {
+        if (!expenseRepository.existsById(expenseId)) {
+            throw new IllegalArgumentException("Expense with id " + expenseId + " not found");
+        }
+        expenseRepository.deleteExpenseById(expenseId);
     }
 }

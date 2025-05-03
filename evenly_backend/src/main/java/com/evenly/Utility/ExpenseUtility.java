@@ -1,12 +1,14 @@
 package com.evenly.Utility;
 
+import com.evenly.entity.ExpenseShare;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public final class DivideUtility {
+public final class ExpenseUtility {
     public static Map<String, BigDecimal> equalDivide(List<String> userIds, BigDecimal amount) {
         BigDecimal baseShare = amount.divide(new BigDecimal(userIds.size()), RoundingMode.DOWN);
 
@@ -28,6 +30,14 @@ public final class DivideUtility {
             }
         }
 
+        return map;
+    }
+
+    public static Map<String, BigDecimal> expenseSharesToDividedAmounts(List<ExpenseShare> expenseShares) {
+        Map<String, BigDecimal> map = new HashMap<>();
+        for (ExpenseShare expenseShare : expenseShares) {
+            map.put(expenseShare.getUserId(), expenseShare.getAmount());
+        }
         return map;
     }
 }

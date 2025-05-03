@@ -15,8 +15,6 @@ import java.util.List;
 public class EqualExpenseCreateRequestDTO {
     private String groupId;
 
-    private String paidBy;
-
     @Digits(integer = 8, fraction = 2)
     @DecimalMin(value = "0.00")
     private BigDecimal amount;

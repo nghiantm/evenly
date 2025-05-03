@@ -5,12 +5,14 @@ import com.evenly.dto.EqualExpenseCreateRequestDTO;
 import com.evenly.dto.ExpenseCreateResponseDTO;
 import com.evenly.entity.Expense;
 import com.evenly.exception.InvalidCredentialException;
+import com.evenly.securiy.service.GroupAuthService;
 import com.evenly.service.*;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -35,25 +37,25 @@ public class ExpenseController {
 
     @Autowired
     private JwtService jwtService;
+    @Autowired
+    private GroupAuthService groupAuthService;
 
     @PostMapping("/equal")
+    @PreAuthorize("@groupAuthService.isMemberOfGroup(#expense.groupId) && @groupAuthService.areMembersOfGroup(#expense.groupId, #expense.userIds)")
     @Operation(
             summary = "Create an expense for an user in a group"
     )
-    public ResponseEntity<ExpenseCreateResponseDTO> addExpenseEqual(@RequestHeader("Authorization") String authorizationHeader, @RequestBody EqualExpenseCreateRequestDTO expense) {
-        String userId = jwtService.extractUsername(authorizationHeader.substring(7));
-        if (!groupMemberService.isMember(expense.getGroupId(), userId)) {
-            throw new InvalidCredentialException("Invalid credential.");
-        }
-
+    public ResponseEntity<ExpenseCreateResponseDTO> addExpenseEqual(@RequestBody EqualExpenseCreateRequestDTO expense) {
         Expense createdExpense = expenseService.addExpense(expense);
-        ExpenseCreateResponseDTO responseDTO = new ExpenseCreateResponseDTO();
-        responseDTO.setId(createdExpense.getId());
-        responseDTO.setPaidBy(createdExpense.getPaidBy());
-        responseDTO.setGroupId(createdExpense.getGroupId());
-        responseDTO.setAmount(createdExpense.getAmount());
-        responseDTO.setDescription(createdExpense.getDescription());
-        responseDTO.setCreatedDate(createdExpense.getCreatedDate());
+
+        ExpenseCreateResponseDTO responseDTO = new ExpenseCreateResponseDTO(
+                createdExpense.getId(),
+                createdExpense.getGroupId(),
+                createdExpense.getPaidBy(),
+                createdExpense.getAmount(),
+                createdExpense.getDescription(),
+                createdExpense.getCreatedDate()
+        );
 
         Map<String, BigDecimal> dividedAmounts = DivideUtility.equalDivide(expense.getUserIds(), expense.getAmount());
         expenseShareService.save(dividedAmounts, createdExpense.getId());

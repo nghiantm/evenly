@@ -5,7 +5,6 @@ import com.evenly.dto.EqualExpenseCreateRequestDTO;
 import com.evenly.dto.ExpenseCreateResponseDTO;
 import com.evenly.entity.Expense;
 import com.evenly.exception.InvalidCredentialException;
-import com.evenly.securiy.service.GroupAuthService;
 import com.evenly.service.*;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.transaction.Transactional;
@@ -37,8 +36,6 @@ public class ExpenseController {
 
     @Autowired
     private JwtService jwtService;
-    @Autowired
-    private GroupAuthService groupAuthService;
 
     @PostMapping("/equal")
     @PreAuthorize("@groupAuthService.isMemberOfGroup(#expense.groupId) && @groupAuthService.areMembersOfGroup(#expense.groupId, #expense.userIds)")

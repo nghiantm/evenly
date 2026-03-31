@@ -91,6 +91,7 @@ export function MembersTab({ group, currentUserId }: MembersTabProps) {
                 <HStack spacing={3}>
                   <UserAvatar
                     displayName={member.displayName}
+                    avatarUrl={member.avatarUrl}
                     size="sm"
                   />
                   <VStack align="start" spacing={0}>

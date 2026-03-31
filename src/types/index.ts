@@ -44,6 +44,7 @@ export interface GroupMember {
   userId: string;
   email: string;
   displayName: string;
+  avatarUrl?: string | null;
   role: GroupRole;
   joinedAt: string;
 }

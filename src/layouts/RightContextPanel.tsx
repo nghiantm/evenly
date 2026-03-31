@@ -244,6 +244,7 @@ function GroupContextPanel({ groupId }: { groupId: string }) {
                   <Avatar
                     size="xs"
                     name={getInitials(m.displayName)}
+                    src={m.avatarUrl ?? undefined}
                     bg="brand.500" color="white"
                   />
                   <Text fontSize="xs" color={C.textSub} noOfLines={1}>

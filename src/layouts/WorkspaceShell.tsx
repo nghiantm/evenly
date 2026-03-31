@@ -138,14 +138,11 @@ export function WorkspaceShell() {
                 size="sm"
                 onClick={mobileMenuDisc.onOpen}
               />
-              <HStack spacing={1.5}>
-                <Box
-                  w={5} h={5} bg="brand.500" borderRadius="sm"
-                  display="flex" alignItems="center" justifyContent="center"
-                >
-                  <Text color="white" fontWeight={800} fontSize="10px" fontFamily="mono">E</Text>
-                </Box>
-                <Text fontWeight={700} fontSize="sm" color={C.text}>EVENLY</Text>
+              <HStack spacing={2}>
+                <img src="/evenly-logo.svg" alt="Evenly" style={{ height: '22px', width: 'auto' }} />
+                <Text fontWeight={800} fontSize="sm" color={C.text} letterSpacing="0.15em" fontFamily="'Montserrat', sans-serif">
+                  EVENLY
+                </Text>
               </HStack>
             </HStack>
 

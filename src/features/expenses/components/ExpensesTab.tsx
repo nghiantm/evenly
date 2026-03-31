@@ -2,7 +2,7 @@ import {
   VStack, HStack, Text, Button, Box, Skeleton, Divider,
 } from '@chakra-ui/react';
 import { AddIcon } from '@chakra-ui/icons';
-import { useState, useRef, useLayoutEffect } from 'react';
+import { useState } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { expensesService } from '@/services/expenses';
 import { ExpenseCard } from './ExpenseCard';
@@ -27,16 +27,7 @@ export function ExpensesTab({ group, currentUserId }: ExpensesTabProps) {
   const [detailOpen, setDetailOpen]           = useState(false);
   const [paymentOpen, setPaymentOpen]         = useState(false);
 
-  const buttonBarRef = useRef<HTMLDivElement>(null);
-  const [pageSize, setPageSize] = useState(20);
-  const ROW_HEIGHT = 57; // px — ExpenseCard py={3} (24px) + two text lines (~32px) + divider (1px)
-
-  useLayoutEffect(() => {
-    if (!buttonBarRef.current) return;
-    const bottom = buttonBarRef.current.getBoundingClientRect().bottom;
-    const available = window.innerHeight - bottom;
-    setPageSize(Math.max(10, Math.floor(available / ROW_HEIGHT)));
-  }, []);
+  const PAGE_SIZE = 20;
 
   const {
     data,
@@ -46,8 +37,8 @@ export function ExpensesTab({ group, currentUserId }: ExpensesTabProps) {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ['expenses', group.groupId, pageSize],
-    queryFn:  ({ pageParam = 1 }) => expensesService.list(group.groupId, { page: pageParam as number, page_size: pageSize }),
+    queryKey: ['expenses', group.groupId],
+    queryFn:  ({ pageParam = 1 }) => expensesService.list(group.groupId, { page: pageParam as number, page_size: PAGE_SIZE }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) =>
       lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined,
@@ -64,7 +55,7 @@ export function ExpensesTab({ group, currentUserId }: ExpensesTabProps) {
     <>
       <VStack align="stretch" spacing={0}>
         {/* Bar */}
-        <HStack ref={buttonBarRef} justify="space-between" py={2} mb={2}>
+        <HStack justify="space-between" py={2} mb={2}>
           <Text fontSize="xs" color={C.textMuted} fontFamily="mono">
             {data ? `${total} expense${total !== 1 ? 's' : ''}` : ''}
           </Text>

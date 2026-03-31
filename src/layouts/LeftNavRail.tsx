@@ -58,14 +58,8 @@ export function LeftNavRail({ onClose }: LeftNavRailProps) {
 
       {/* ── Logo ── */}
       <HStack spacing={2.5} px={4} py={4} flexShrink={0}>
-        <Box
-          w={7} h={7} bg="brand.500" borderRadius="md"
-          display="flex" alignItems="center" justifyContent="center"
-          flexShrink={0}
-        >
-          <Text color="white" fontWeight={800} fontSize="sm" fontFamily="mono">E</Text>
-        </Box>
-        <Text fontWeight={700} fontSize="sm" color={C.text} letterSpacing="0.03em">
+        <img src="/evenly-logo.svg" alt="Evenly" style={{ height: '28px', width: 'auto' }} />
+        <Text fontWeight={800} fontSize="sm" color={C.text} letterSpacing="0.15em" fontFamily="'Montserrat', sans-serif">
           EVENLY
         </Text>
       </HStack>

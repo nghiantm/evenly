@@ -2,8 +2,8 @@ import {
   VStack, HStack, Text, Button, Box, Skeleton, Divider,
 } from '@chakra-ui/react';
 import { AddIcon } from '@chakra-ui/icons';
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useRef, useLayoutEffect } from 'react';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { expensesService } from '@/services/expenses';
 import { ExpenseCard } from './ExpenseCard';
 import { ExpenseFormModal } from './ExpenseFormModal';
@@ -20,7 +20,6 @@ interface ExpensesTabProps {
 }
 
 export function ExpensesTab({ group, currentUserId }: ExpensesTabProps) {
-  const [page, setPage] = useState(1);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [editingExpense, setEditingExpense]   = useState<Expense | null>(null);
   const [createOpen, setCreateOpen]           = useState(false);
@@ -28,11 +27,35 @@ export function ExpensesTab({ group, currentUserId }: ExpensesTabProps) {
   const [detailOpen, setDetailOpen]           = useState(false);
   const [paymentOpen, setPaymentOpen]         = useState(false);
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['expenses', group.groupId, page],
-    queryFn:  () => expensesService.list(group.groupId, { page, page_size: 20 }),
+  const buttonBarRef = useRef<HTMLDivElement>(null);
+  const [pageSize, setPageSize] = useState(20);
+  const ROW_HEIGHT = 57; // px — ExpenseCard py={3} (24px) + two text lines (~32px) + divider (1px)
+
+  useLayoutEffect(() => {
+    if (!buttonBarRef.current) return;
+    const bottom = buttonBarRef.current.getBoundingClientRect().bottom;
+    const available = window.innerHeight - bottom;
+    setPageSize(Math.max(10, Math.floor(available / ROW_HEIGHT)));
+  }, []);
+
+  const {
+    data,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['expenses', group.groupId, pageSize],
+    queryFn:  ({ pageParam = 1 }) => expensesService.list(group.groupId, { page: pageParam as number, page_size: pageSize }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined,
     staleTime: 30_000,
   });
+
+  const expenses = data?.pages.flatMap(p => p.expenses) ?? [];
+  const total    = data?.pages[0]?.total ?? 0;
 
   const handleView = (e: Expense)  => { setSelectedExpense(e); setDetailOpen(true); };
   const handleEdit = (e: Expense)  => { setEditingExpense(e);  setEditOpen(true);   };
@@ -41,9 +64,9 @@ export function ExpensesTab({ group, currentUserId }: ExpensesTabProps) {
     <>
       <VStack align="stretch" spacing={0}>
         {/* Bar */}
-        <HStack justify="space-between" py={2} mb={2}>
+        <HStack ref={buttonBarRef} justify="space-between" py={2} mb={2}>
           <Text fontSize="xs" color={C.textMuted} fontFamily="mono">
-            {data ? `${data.total} expense${data.total !== 1 ? 's' : ''}` : ''}
+            {data ? `${total} expense${total !== 1 ? 's' : ''}` : ''}
           </Text>
           {!group.archivedAt && (
             <HStack spacing={2}>
@@ -83,10 +106,10 @@ export function ExpensesTab({ group, currentUserId }: ExpensesTabProps) {
             borderBottom="1px solid"
             borderColor={C.border}
           >
-            <Text flex={1} fontSize="10px" color={C.textMuted} letterSpacing="0.1em" textTransform="uppercase" fontWeight={700}>Description</Text>
-            <Text w="80px" fontSize="10px" color={C.textMuted} letterSpacing="0.1em" textTransform="uppercase" fontWeight={700} textAlign="center" display={{ base: 'none', sm: 'block' }}>Date</Text>
-            <Text w="64px" fontSize="10px" color={C.textMuted} letterSpacing="0.1em" textTransform="uppercase" fontWeight={700} textAlign="center" display={{ base: 'none', md: 'block' }}>Paid by</Text>
-            <Text w="96px" fontSize="10px" color={C.textMuted} letterSpacing="0.1em" textTransform="uppercase" fontWeight={700} textAlign="right">Amount</Text>
+            <Text flex={1} minW={0} fontSize="10px" color={C.textMuted} letterSpacing="0.1em" textTransform="uppercase" fontWeight={700}>Description</Text>
+            <Text w="115px" fontSize="10px" color={C.textMuted} letterSpacing="0.1em" textTransform="uppercase" fontWeight={700} textAlign="center" display={{ base: 'none', sm: 'block' }}>Date</Text>
+            <Text w="130px" fontSize="10px" color={C.textMuted} letterSpacing="0.1em" textTransform="uppercase" fontWeight={700} textAlign="center" display={{ base: 'none', md: 'block' }}>Paid by</Text>
+            <Text w="150px" fontSize="10px" color={C.textMuted} letterSpacing="0.1em" textTransform="uppercase" fontWeight={700} textAlign="right">Amount</Text>
             <Box w="28px" />
           </HStack>
 
@@ -98,7 +121,7 @@ export function ExpensesTab({ group, currentUserId }: ExpensesTabProps) {
                 </Box>
               ))}
             </VStack>
-          ) : !data?.expenses.length ? (
+          ) : !expenses.length ? (
             <Box px={4} py={8} textAlign="center">
               <Text fontSize="sm" color={C.textMuted}>No expenses yet.</Text>
               {!group.archivedAt && (
@@ -112,13 +135,14 @@ export function ExpensesTab({ group, currentUserId }: ExpensesTabProps) {
             </Box>
           ) : (
             <VStack align="stretch" spacing={0} divider={<Divider borderColor={C.border} />}>
-              {data.expenses.map(expense => (
+              {expenses.map(expense => (
                 <ExpenseCard
                   key={expense.expenseId}
                   expense={expense}
                   members={group.members}
                   currentUserId={currentUserId}
                   groupRole={group.myRole}
+                  groupCurrency={group.defaultCurrency}
                   onClick={() => handleView(expense)}
                   onEdit={() => handleEdit(expense)}
                 />
@@ -127,27 +151,18 @@ export function ExpensesTab({ group, currentUserId }: ExpensesTabProps) {
           )}
         </Box>
 
-        {/* Pagination */}
-        {(data?.totalPages ?? 0) > 1 && (
-          <HStack justify="space-between" pt={3}>
-            <Button
-              size="sm" variant="terminal"
-              isDisabled={page === 1}
-              onClick={() => setPage(p => p - 1)}
-            >
-              ← Previous
-            </Button>
-            <Text fontSize="xs" color={C.textMuted} fontFamily="mono">
-              {page} / {data!.totalPages}
-            </Text>
-            <Button
-              size="sm" variant="terminal"
-              isDisabled={page === data?.totalPages}
-              onClick={() => setPage(p => p + 1)}
-            >
-              Next →
-            </Button>
-          </HStack>
+        {hasNextPage && (
+          <Button
+            size="sm"
+            variant="terminal"
+            onClick={() => fetchNextPage()}
+            isLoading={isFetchingNextPage}
+            loadingText="Loading…"
+            mt={2}
+            alignSelf="center"
+          >
+            Load more ({total - expenses.length} remaining)
+          </Button>
         )}
       </VStack>
 

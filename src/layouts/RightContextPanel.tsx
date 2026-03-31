@@ -214,8 +214,8 @@ function GroupContextPanel({ groupId }: { groupId: string }) {
     staleTime: 60_000,
   });
   const { data: balances, isLoading: bLoad } = useQuery({
-    queryKey: ['balances', groupId, group?.defaultCurrency ?? 'USD'],
-    queryFn:  () => balancesService.getGroupBalances(groupId, group?.defaultCurrency ?? 'USD'),
+    queryKey: ['balances', groupId],
+    queryFn:  () => balancesService.getGroupBalances(groupId),
     enabled:  !!group,
     staleTime: 60_000,
   });

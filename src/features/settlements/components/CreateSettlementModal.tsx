@@ -81,7 +81,7 @@ export function CreateSettlementModal({
   // Load balances to pre-fill suggested amount
   const { data: balances } = useQuery({
     queryKey: ['balances', group.groupId, group.defaultCurrency],
-    queryFn: () => balancesService.getGroupBalances(group.groupId, group.defaultCurrency),
+    queryFn: () => balancesService.getGroupBalances(group.groupId),
   });
 
   const fromUserId = watch('fromUserId');

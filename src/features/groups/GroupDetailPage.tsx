@@ -7,6 +7,7 @@ import { useParams, Link, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { groupsService } from '@/services/groups';
 import { usersService } from '@/services/users';
+import { expensesService } from '@/services/expenses';
 import { RoleBadge } from '@/components/ui/RoleBadge';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { SectionHeader } from '@/components/workspace/SectionHeader';
@@ -24,6 +25,14 @@ export function GroupDetailPage() {
   const editDisclosure = useDisclosure();
 
   const { data: me } = useQuery({ queryKey: ['users', 'me'], queryFn: usersService.getMe });
+
+  const { data: expensesPage } = useQuery({
+    queryKey: ['expenses', groupId, 1],
+    queryFn: () => expensesService.list(groupId!, { page: 1, page_size: 1 }),
+    enabled: !!groupId,
+    staleTime: 60_000,
+  });
+  const hasExpenses = (expensesPage?.total ?? 0) > 0;
 
   const { data: group, isLoading, error } = useQuery({
     queryKey: ['groups', groupId],
@@ -150,6 +159,7 @@ export function GroupDetailPage() {
         isOpen={editDisclosure.isOpen}
         onClose={editDisclosure.onClose}
         group={group}
+        hasExpenses={hasExpenses}
       />
     </>
   );

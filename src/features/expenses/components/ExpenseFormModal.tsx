@@ -30,11 +30,12 @@ import { useForm, useWatch, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { expensesService } from '@/services/expenses';
 import { FormField } from '@/components/forms/FormField';
 import { getErrorMessage } from '@/lib/apiClient';
 import { SUPPORTED_CURRENCIES, round2, todayIso, formatCurrency } from '@/lib/utils';
+import { C } from '@/lib/colors';
 import type { GroupDetail, Expense, SplitType, CreateExpenseRequest } from '@/types';
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
@@ -151,6 +152,31 @@ export function ExpenseFormModal({ isOpen, onClose, group, expense }: ExpenseFor
     }
   }, [expense, isOpen]);
 
+  const [previewRate, setPreviewRate] = useState<number | null>(null);
+
+  const selectedCurrency = watch('currency');
+  const isForeignCurrency = selectedCurrency !== group.defaultCurrency;
+
+  useEffect(() => {
+    if (!isForeignCurrency) { setPreviewRate(null); return; }
+    setPreviewRate(null);
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://api.frankfurter.app/latest?from=${selectedCurrency}&to=${group.defaultCurrency}`,
+          { signal: controller.signal }
+        );
+        if (!res.ok) return;
+        const json = await res.json();
+        setPreviewRate(json.rates?.[group.defaultCurrency] ?? null);
+      } catch {
+        // aborted or network error — ignore
+      }
+    }, 300);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [selectedCurrency, group.defaultCurrency, isForeignCurrency]);
+
   const splitType = watch('splitType') as SplitType;
   const totalAmount = watch('totalAmount');
   const includedMembers = watch('includedMembers');
@@ -193,12 +219,14 @@ export function ExpenseFormModal({ isOpen, onClose, group, expense }: ExpenseFor
       });
       onClose();
     },
-    onError: (err) => {
+    onError: (err: unknown) => {
+      const msg = getErrorMessage(err);
+      const is503 = (err as { response?: { status?: number } })?.response?.status === 503;
       toast({
-        title: isEditing ? 'Update failed' : 'Failed to add expense',
-        description: getErrorMessage(err),
-        status: 'error',
-        duration: 5000,
+        title: is503 ? 'Exchange rate unavailable' : isEditing ? 'Update failed' : 'Failed to add expense',
+        description: msg,
+        status: is503 ? 'warning' : 'error',
+        duration: is503 ? 8000 : 5000,
       });
     },
   });
@@ -258,7 +286,7 @@ export function ExpenseFormModal({ isOpen, onClose, group, expense }: ExpenseFor
         <ModalCloseButton />
         <form onSubmit={handleSubmit(onSubmit)}>
           <ModalBody>
-            <VStack spacing={4} align="stretch">
+            <VStack spacing={3} align="stretch">
               {/* Description */}
               <FormField label="Description" error={errors.description?.message} isRequired>
                 <Input {...register('description')} placeholder="e.g. Groceries, Dinner, Rent" autoFocus />
@@ -280,19 +308,36 @@ export function ExpenseFormModal({ isOpen, onClose, group, expense }: ExpenseFor
                 </FormField>
               </HStack>
 
-              {/* Date */}
-              <FormField label="Date" error={errors.expenseDate?.message} isRequired>
-                <Input type="date" {...register('expenseDate')} />
-              </FormField>
+              {/* FX preview */}
+              {isForeignCurrency && (
+                <Box px={1}>
+                  {previewRate ? (
+                    <Text fontSize="xs" color="blue.300" fontFamily="mono">
+                      Preview: 1 {selectedCurrency} ≈ {previewRate} {group.defaultCurrency}
+                      {totalAmount > 0 && ` · ≈ ${formatCurrency(round2(Number(totalAmount) * previewRate), group.defaultCurrency)}`}
+                    </Text>
+                  ) : (
+                    <Text fontSize="xs" color={C.textMuted}>Fetching exchange rate…</Text>
+                  )}
+                  <Text fontSize="10px" color={C.textMuted} mt={0.5}>
+                    Rate is indicative only — the backend locks the final rate on save.
+                  </Text>
+                </Box>
+              )}
 
-              {/* Paid by */}
-              <FormField label="Paid By" error={errors.paidByUserId?.message} isRequired>
-                <Select {...register('paidByUserId')}>
-                  {group.members.map((m) => (
-                    <option key={m.userId} value={m.userId}>{m.displayName}</option>
-                  ))}
-                </Select>
-              </FormField>
+              {/* Date + Paid by */}
+              <HStack align="flex-start">
+                <FormField label="Date" error={errors.expenseDate?.message} isRequired flex={1}>
+                  <Input type="date" {...register('expenseDate')} />
+                </FormField>
+                <FormField label="Paid By" error={errors.paidByUserId?.message} isRequired flex={1}>
+                  <Select {...register('paidByUserId')}>
+                    {group.members.map((m) => (
+                      <option key={m.userId} value={m.userId}>{m.displayName}</option>
+                    ))}
+                  </Select>
+                </FormField>
+              </HStack>
 
               <Divider />
 

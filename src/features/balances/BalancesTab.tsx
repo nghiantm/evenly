@@ -1,14 +1,13 @@
 import {
   VStack, HStack, Text, Button, Divider, Box,
-  Select, Skeleton, Grid, useToast,
+  Skeleton, Grid, useToast,
 } from '@chakra-ui/react';
 import { RepeatIcon } from '@chakra-ui/icons';
-import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { balancesService } from '@/services/balances';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { getErrorMessage } from '@/lib/apiClient';
-import { isAtLeastAdmin, formatCurrency, SUPPORTED_CURRENCIES } from '@/lib/utils';
+import { isAtLeastAdmin, formatCurrency } from '@/lib/utils';
 import { C } from '@/lib/colors';
 import type { GroupDetail } from '@/types';
 
@@ -18,13 +17,13 @@ interface BalancesTabProps {
 }
 
 export function BalancesTab({ group, currentUserId }: BalancesTabProps) {
-  const [currency, setCurrency] = useState(group.defaultCurrency);
+  const currency = group.defaultCurrency;
   const qc = useQueryClient();
   const toast = useToast();
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['balances', group.groupId, currency],
-    queryFn: () => balancesService.getGroupBalances(group.groupId, currency),
+    queryKey: ['balances', group.groupId],
+    queryFn: () => balancesService.getGroupBalances(group.groupId),
   });
 
   const recalcMutation = useMutation({
@@ -49,20 +48,9 @@ export function BalancesTab({ group, currentUserId }: BalancesTabProps) {
     <VStack align="stretch" spacing={4}>
       {/* Controls bar */}
       <HStack justify="space-between" py={2} mb={2}>
-        <HStack spacing={2}>
-          <Text fontSize="xs" color={C.textMuted} fontFamily="mono">Currency:</Text>
-          <Select
-            size="sm"
-            w="auto"
-            value={currency}
-            onChange={(e) => setCurrency(e.target.value)}
-          >
-            {SUPPORTED_CURRENCIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </Select>
-        </HStack>
-
+        <Text fontSize="xs" color={C.textMuted} fontFamily="mono">
+          All balances in {currency}
+        </Text>
         {canRecalculate && (
           <Button
             size="sm"

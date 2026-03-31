@@ -75,7 +75,7 @@ export function round2(n: number): number {
 const SUPPORTED_CURRENCIES = [
   'USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'SGD', 'CHF',
   'HKD', 'NZD', 'SEK', 'NOK', 'DKK', 'MXN', 'INR', 'BRL',
-  'KRW', 'VND', 'THB', 'IDR',
+  'KRW', 'THB', 'IDR',
 ];
 
 export { SUPPORTED_CURRENCIES };

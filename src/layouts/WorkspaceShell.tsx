@@ -91,7 +91,7 @@ export function WorkspaceShell() {
           borderRight="1px solid"
           borderColor={C.border}
           h="100vh"
-          overflowY="auto"
+          overflow="hidden"
         >
           <LeftNavRail />
         </Box>

@@ -2,11 +2,8 @@ import { apiClient } from '@/lib/apiClient';
 import type { GroupBalances, DashboardBalance } from '@/types';
 
 export const balancesService = {
-  async getGroupBalances(groupId: string, currency = 'USD'): Promise<GroupBalances> {
-    const { data } = await apiClient.get<GroupBalances>(
-      `/groups/${groupId}/balances`,
-      { params: { currency } }
-    );
+  async getGroupBalances(groupId: string): Promise<GroupBalances> {
+    const { data } = await apiClient.get<GroupBalances>(`/groups/${groupId}/balances`);
     return data;
   },
 

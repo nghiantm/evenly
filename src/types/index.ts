@@ -94,6 +94,8 @@ export interface Expense {
   description: string;
   currency: string;
   totalAmount: number;
+  exchangeRate: number | null;
+  convertedAmount: number | null;
   expenseDate: string;
   note: string | null;
   createdBy: string;

@@ -18,6 +18,7 @@ interface ExpenseCardProps {
   members: GroupMember[];
   currentUserId: string;
   groupRole: GroupRole;
+  groupCurrency: string;
   onClick: () => void;
   onEdit: () => void;
 }
@@ -27,6 +28,7 @@ export function ExpenseCard({
   members,
   currentUserId,
   groupRole,
+  groupCurrency,
   onClick,
   onEdit,
 }: ExpenseCardProps) {
@@ -85,7 +87,7 @@ export function ExpenseCard({
 
         {/* Date */}
         <Text
-          w="80px" textAlign="center"
+          w="115px" textAlign="center"
           fontSize="xs" fontFamily="mono" color={C.textMuted}
           display={{ base: 'none', sm: 'block' }}
         >
@@ -94,7 +96,7 @@ export function ExpenseCard({
 
         {/* Paid by (abbreviated) */}
         <Text
-          w="64px" textAlign="center"
+          w="130px" textAlign="center"
           fontSize="xs" color={C.textSub}
           noOfLines={1}
           display={{ base: 'none', md: 'block' }}
@@ -103,18 +105,23 @@ export function ExpenseCard({
         </Text>
 
         {/* Amount */}
-        <VStack align="end" spacing={0} w="96px">
-          <Text fontSize="sm" fontFamily="mono" fontWeight={700} color={C.text}>
-            {formatCurrency(expense.totalAmount, expense.currency)}
-          </Text>
-          {myNet !== 0 && (
-            <Text
-              fontSize="10px" fontFamily="mono"
-              color={myNet > 0 ? C.green : C.red}
-            >
-              {myNet > 0 ? '+' : ''}{formatCurrency(myNet, expense.currency)}
+        <VStack align="end" spacing={0} w="150px">
+          <HStack spacing={1.5} justify="flex-end" align="baseline">
+            <Text fontSize="sm" fontFamily="mono" fontWeight={700} color={C.text}>
+              {formatCurrency(expense.totalAmount, expense.currency)}
             </Text>
-          )}
+            {expense.convertedAmount && expense.convertedAmount !== expense.totalAmount && (
+              <Text fontSize="10px" fontFamily="mono" color={C.textMuted} noOfLines={1}>
+                ≈{formatCurrency(expense.convertedAmount, groupCurrency)}
+              </Text>
+            )}
+          </HStack>
+          <Text
+            fontSize="10px" fontFamily="mono" minH="15px"
+            color={myNet > 0 ? C.green : myNet < 0 ? C.red : 'transparent'}
+          >
+            {myNet !== 0 ? `${myNet > 0 ? '+' : ''}${formatCurrency(myNet, expense.currency)}` : '·'}
+          </Text>
         </VStack>
 
         {/* Actions */}

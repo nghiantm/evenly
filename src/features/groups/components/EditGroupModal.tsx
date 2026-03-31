@@ -47,9 +47,10 @@ interface EditGroupModalProps {
   isOpen: boolean;
   onClose: () => void;
   group: GroupDetail;
+  hasExpenses?: boolean;
 }
 
-export function EditGroupModal({ isOpen, onClose, group }: EditGroupModalProps) {
+export function EditGroupModal({ isOpen, onClose, group, hasExpenses }: EditGroupModalProps) {
   const qc = useQueryClient();
   const toast = useToast();
   const navigate = useNavigate();
@@ -108,13 +109,15 @@ export function EditGroupModal({ isOpen, onClose, group }: EditGroupModalProps) 
                   <Input {...register('name')} />
                 </FormField>
 
-                <FormField label="Default Currency">
-                  <Select {...register('defaultCurrency')}>
-                    {SUPPORTED_CURRENCIES.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </Select>
-                </FormField>
+                {!hasExpenses && (
+                  <FormField label="Default Currency">
+                    <Select {...register('defaultCurrency')}>
+                      {SUPPORTED_CURRENCIES.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </Select>
+                  </FormField>
+                )}
 
                 <FormField
                   label="Simplify Debts"

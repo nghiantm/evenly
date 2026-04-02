@@ -1,6 +1,6 @@
 import {
   Box, VStack, HStack, Text, Divider, Tooltip,
-  Skeleton, Avatar, IconButton,
+  Skeleton, IconButton,
 } from '@chakra-ui/react';
 import { AddIcon } from '@chakra-ui/icons';
 import { NavLink, useNavigate } from 'react-router-dom';
@@ -10,8 +10,9 @@ import { usersService } from '@/services/users';
 import { groupsService } from '@/services/groups';
 import { balancesService } from '@/services/balances';
 import { C } from '@/lib/colors';
-import { formatCurrency, getInitials } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 import { useWorkspaceActions } from './WorkspaceActionsContext';
+import { UserAvatar } from '@/components/ui/UserAvatar';
 
 const NAV = [
   { label: 'Dashboard', to: '/dashboard', icon: '◈' },
@@ -200,12 +201,10 @@ export function LeftNavRail({ onClose }: LeftNavRailProps) {
       {/* ── User ── */}
       <VStack align="stretch" spacing={0} borderTop="1px solid" borderColor={C.border} flexShrink={0}>
         <HStack spacing={2.5} px={3} py={3}>
-          <Avatar
+          <UserAvatar
             size="xs"
-            name={getInitials(displayName)}
-            src={profile?.avatarUrl ?? undefined}
-            bg="brand.500"
-            color="white"
+            displayName={displayName}
+            avatarUrl={profile?.avatarUrl}
             flexShrink={0}
           />
           <VStack align="start" spacing={0} flex={1} minW={0}>

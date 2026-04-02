@@ -20,7 +20,7 @@ import {
   Alert,
   AlertIcon,
   Box,
-  Badge,
+  Skeleton,
   useToast,
   RadioGroup,
   Radio,
@@ -37,6 +37,7 @@ import { getErrorMessage } from '@/lib/apiClient';
 import { SUPPORTED_CURRENCIES, round2, todayIso, formatCurrency } from '@/lib/utils';
 import { C } from '@/lib/colors';
 import type { GroupDetail, Expense, SplitType, CreateExpenseRequest } from '@/types';
+import { suggestCategory, EXPENSE_CATEGORIES } from '../suggestCategory';
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -47,6 +48,7 @@ const schema = z.object({
   expenseDate: z.string().min(1, 'Date is required'),
   note: z.string().max(500).optional(),
   paidByUserId: z.string().min(1, 'Select who paid'),
+  category: z.string().min(1),
   splitType: z.enum(['EQUAL', 'EXACT', 'PERCENT', 'SHARE']),
   // Per-member fields — keyed by userId
   includedMembers: z.record(z.boolean()),   // for EQUAL
@@ -100,6 +102,7 @@ export function ExpenseFormModal({ isOpen, onClose, group, expense }: ExpenseFor
     resolver: zodResolver(schema),
     defaultValues: {
       description: '',
+      category: 'other',
       currency: group.defaultCurrency,
       totalAmount: 0,
       expenseDate: todayIso(),
@@ -124,6 +127,7 @@ export function ExpenseFormModal({ isOpen, onClose, group, expense }: ExpenseFor
       );
       reset({
         description: expense.description,
+        category: suggestCategory(expense.description),
         currency: expense.currency,
         totalAmount: expense.totalAmount,
         expenseDate: expense.expenseDate,
@@ -138,6 +142,7 @@ export function ExpenseFormModal({ isOpen, onClose, group, expense }: ExpenseFor
     } else {
       reset({
         description: '',
+        category: 'other',
         currency: group.defaultCurrency,
         totalAmount: 0,
         expenseDate: todayIso(),
@@ -153,6 +158,17 @@ export function ExpenseFormModal({ isOpen, onClose, group, expense }: ExpenseFor
   }, [expense, isOpen]);
 
   const [previewRate, setPreviewRate] = useState<number | null>(null);
+  const [isCategorizing, setIsCategorizing] = useState(false);
+
+  const descriptionValue = watch('description');
+  useEffect(() => {
+    setIsCategorizing(true);
+    const timer = setTimeout(() => {
+      setValue('category', suggestCategory(descriptionValue ?? ''));
+      setIsCategorizing(false);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [descriptionValue]);
 
   const selectedCurrency = watch('currency');
   const isForeignCurrency = selectedCurrency !== group.defaultCurrency;
@@ -290,6 +306,18 @@ export function ExpenseFormModal({ isOpen, onClose, group, expense }: ExpenseFor
               {/* Description */}
               <FormField label="Description" error={errors.description?.message} isRequired>
                 <Input {...register('description')} placeholder="e.g. Groceries, Dinner, Rent" autoFocus />
+              </FormField>
+              {/* Category */}
+              <FormField label="Category">
+                {isCategorizing ? (
+                  <Skeleton h={10} borderRadius="md" />
+                ) : (
+                  <Select {...register('category')}>
+                    {EXPENSE_CATEGORIES.map((c) => (
+                      <option key={c} value={c.toLowerCase()}>{c}</option>
+                    ))}
+                  </Select>
+                )}
               </FormField>
 
               {/* Amount + Currency */}

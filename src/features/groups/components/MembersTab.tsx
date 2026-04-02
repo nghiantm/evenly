@@ -19,6 +19,7 @@ import {
   useToast,
   Avatar,
   Spinner,
+  Tooltip,
   AlertDialog,
   AlertDialogBody,
   AlertDialogFooter,
@@ -34,6 +35,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { groupsService } from '@/services/groups';
 import { usersService } from '@/services/users';
+import { balancesService } from '@/services/balances';
 import { RoleBadge } from '@/components/ui/RoleBadge';
 import { UserAvatar } from '@/components/ui/UserAvatar';
 import { FormField } from '@/components/forms/FormField';
@@ -55,6 +57,16 @@ export function MembersTab({ group, currentUserId }: MembersTabProps) {
   const toast = useToast();
 
   const canManage = isAtLeastAdmin(group.myRole);
+
+  const { data: balances } = useQuery({
+    queryKey: ['balances', group.groupId],
+    queryFn: () => balancesService.getGroupBalances(group.groupId),
+    staleTime: 60_000,
+  });
+
+  const balanceByUser = Object.fromEntries(
+    (balances?.userBalances ?? []).map(b => [b.userId, b.netAmount])
+  );
 
   const removeMutation = useMutation({
     mutationFn: (userId: string) => groupsService.removeMember(group.groupId, userId),
@@ -110,15 +122,24 @@ export function MembersTab({ group, currentUserId }: MembersTabProps) {
                 </HStack>
 
                 {canRemove && group.myRole !== 'MEMBER' || isMe ? (
-                  <IconButton
-                    aria-label="Remove member"
-                    icon={<DeleteIcon />}
-                    size="sm"
-                    variant="ghost"
-                    colorScheme="red"
-                    onClick={() => setRemovingMember(member)}
-                    isDisabled={!canRemove}
-                  />
+                  <Tooltip
+                    label="Settle all balances before removing"
+                    isDisabled={!balanceByUser[member.userId]}
+                    hasArrow
+                    placement="left"
+                  >
+                    <Box>
+                      <IconButton
+                        aria-label="Remove member"
+                        icon={<DeleteIcon />}
+                        size="sm"
+                        variant="ghost"
+                        colorScheme="red"
+                        onClick={() => setRemovingMember(member)}
+                        isDisabled={!canRemove || !!balanceByUser[member.userId]}
+                      />
+                    </Box>
+                  </Tooltip>
                 ) : null}
               </HStack>
             );

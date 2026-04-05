@@ -34,7 +34,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { expensesService } from '@/services/expenses';
 import { FormField } from '@/components/forms/FormField';
-import { getErrorMessage } from '@/lib/apiClient';
+import { apiClient, getErrorMessage } from '@/lib/apiClient';
 import { SUPPORTED_CURRENCIES, round2, todayIso, formatCurrency } from '@/lib/utils';
 import { C } from '@/lib/colors';
 import type { GroupDetail, Expense, SplitType, CreateExpenseRequest } from '@/types';
@@ -159,6 +159,7 @@ export function ExpenseFormModal({ isOpen, onClose, group, expense }: ExpenseFor
   }, [expense, isOpen]);
 
   const [previewRate, setPreviewRate] = useState<number | null>(null);
+  const [isFxLoading, setIsFxLoading] = useState(false);
   const [isCategorizing, setIsCategorizing] = useState(false);
 
   const descriptionValue = watch('description');
@@ -175,20 +176,21 @@ export function ExpenseFormModal({ isOpen, onClose, group, expense }: ExpenseFor
   const isForeignCurrency = selectedCurrency !== group.defaultCurrency;
 
   useEffect(() => {
-    if (!isForeignCurrency) { setPreviewRate(null); return; }
+    if (!isForeignCurrency) { setPreviewRate(null); setIsFxLoading(false); return; }
     setPreviewRate(null);
+    setIsFxLoading(true);
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(
-          `https://api.frankfurter.app/latest?from=${selectedCurrency}&to=${group.defaultCurrency}`,
-          { signal: controller.signal }
-        );
-        if (!res.ok) return;
-        const json = await res.json();
-        setPreviewRate(json.rates?.[group.defaultCurrency] ?? null);
+        const { data } = await apiClient.get<{ rate: number }>('/proxy/fx', {
+          params: { from: selectedCurrency, to: group.defaultCurrency },
+          signal: controller.signal,
+        });
+        setPreviewRate(data.rate ?? null);
       } catch {
         // aborted or network error — ignore
+      } finally {
+        setIsFxLoading(false);
       }
     }, 300);
     return () => { clearTimeout(timer); controller.abort(); };
@@ -290,6 +292,7 @@ export function ExpenseFormModal({ isOpen, onClose, group, expense }: ExpenseFor
       totalAmount: values.totalAmount,
       expenseDate: values.expenseDate,
       note: values.note || undefined,
+      category: values.category,
       paidBy: [{ userId: values.paidByUserId, amount: values.totalAmount }],
       splits,
     });
@@ -437,7 +440,7 @@ export function ExpenseFormModal({ isOpen, onClose, group, expense }: ExpenseFor
               type="submit"
               colorScheme="brand"
               isLoading={mutation.isPending}
-              isDisabled={!!exactError || !!percentError || includedIds.length === 0}
+              isDisabled={!!exactError || !!percentError || includedIds.length === 0 || isFxLoading}
               loadingText={isEditing ? 'Saving…' : 'Adding…'}
             >
               {isEditing ? 'Save Changes' : 'Add Expense'}

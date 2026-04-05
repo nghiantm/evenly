@@ -42,6 +42,7 @@ import { FormField } from '@/components/forms/FormField';
 import { DateDisplay } from '@/components/ui/DateDisplay';
 import { getErrorMessage } from '@/lib/apiClient';
 import { isAtLeastAdmin, getInitials } from '@/lib/utils';
+import { C } from '@/lib/colors';
 import type { GroupDetail, GroupMember, GroupRole, UserSearchResult } from '@/types';
 
 interface MembersTabProps {
@@ -263,12 +264,12 @@ function AddMemberModal({ isOpen, onClose, groupId, existingMemberIds }: AddMemb
 
                   {selectedUser ? (
                     <HStack
-                      bg="brand.50"
+                      bg={C.greenDim}
                       px={3}
                       py={2}
                       borderRadius="md"
                       border="1px solid"
-                      borderColor="brand.200"
+                      borderColor={C.greenGlow}
                     >
                       <Avatar
                         size="sm"
@@ -278,23 +279,24 @@ function AddMemberModal({ isOpen, onClose, groupId, existingMemberIds }: AddMemb
                         color="white"
                       />
                       <VStack align="start" spacing={0} flex={1}>
-                        <Text fontSize="sm" fontWeight="medium">{selectedUser.displayName}</Text>
-                        <Text fontSize="xs" color="gray.500">{selectedUser.email}</Text>
+                        <Text fontSize="sm" fontWeight="medium" color={C.text}>{selectedUser.displayName}</Text>
+                        <Text fontSize="xs" color={C.textMuted}>{selectedUser.email}</Text>
                       </VStack>
                       <Button
                         size="xs"
                         variant="ghost"
+                        color={C.textMuted}
                         onClick={() => { setSelectedUser(null); setValue('userId', ''); setQuery(''); }}
                       >
                         ×
                       </Button>
                     </HStack>
                   ) : query.length >= 1 ? (
-                    <Box border="1px solid" borderColor="gray.200" borderRadius="md" overflow="hidden" maxH={48} overflowY="auto">
+                    <Box border="1px solid" borderColor={C.border} borderRadius="md" overflow="hidden" maxH={48} overflowY="auto" bg={C.surface}>
                       {isFetching ? (
                         <HStack p={3} justify="center"><Spinner size="sm" color="brand.500" /></HStack>
                       ) : filteredResults.length === 0 ? (
-                        <Text p={3} fontSize="sm" color="gray.500">No users found.</Text>
+                        <Text p={3} fontSize="sm" color={C.textMuted}>No users found.</Text>
                       ) : (
                         filteredResults.map((u) => (
                           <HStack
@@ -302,7 +304,7 @@ function AddMemberModal({ isOpen, onClose, groupId, existingMemberIds }: AddMemb
                             px={3}
                             py={2}
                             cursor="pointer"
-                            _hover={{ bg: 'gray.50' }}
+                            _hover={{ bg: C.hover }}
                             onClick={() => {
                               setSelectedUser(u);
                               setValue('userId', u.userId);
@@ -317,8 +319,8 @@ function AddMemberModal({ isOpen, onClose, groupId, existingMemberIds }: AddMemb
                               color="white"
                             />
                             <VStack align="start" spacing={0}>
-                              <Text fontSize="sm" fontWeight="medium">{u.displayName}</Text>
-                              <Text fontSize="xs" color="gray.500">{u.email}</Text>
+                              <Text fontSize="sm" fontWeight="medium" color={C.text}>{u.displayName}</Text>
+                              <Text fontSize="xs" color={C.textMuted}>{u.email}</Text>
                             </VStack>
                           </HStack>
                         ))

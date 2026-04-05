@@ -1,6 +1,6 @@
 import {
   VStack, HStack, Text, Button, Divider, Box,
-  Skeleton, Grid, useToast,
+  Skeleton, Grid, useToast, Badge,
 } from '@chakra-ui/react';
 import { RepeatIcon } from '@chakra-ui/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -110,11 +110,19 @@ export function BalancesTab({ group, currentUserId }: BalancesTabProps) {
 
           {/* Who Owes Whom */}
           <Box border="1px solid" borderColor={C.border} borderRadius="lg" overflow="hidden" bg={C.surface}>
-            <Box px={4} py={2.5} bg={C.elevated} borderBottom="1px solid" borderColor={C.border}>
+            <HStack px={4} py={2.5} bg={C.elevated} borderBottom="1px solid" borderColor={C.border} justify="space-between">
               <Text fontSize="10px" color={C.textMuted} letterSpacing="0.1em" textTransform="uppercase" fontWeight={700}>
                 Who Owes Whom
               </Text>
-            </Box>
+              {data.transactionsSaved > 0 && (
+                <Badge
+                  colorScheme="green" variant="subtle" fontSize="9px" px={2} py={0.5}
+                  borderRadius="full" border="1px solid" borderColor={C.greenGlow}
+                >
+                  Simplify saves {data.transactionsSaved} transaction{data.transactionsSaved !== 1 ? 's' : ''}
+                </Badge>
+              )}
+            </HStack>
             {data.pairwiseDebts.length === 0 ? (
               <Box px={4} py={8} textAlign="center">
                 <Text fontSize="sm" color={C.textMuted}>No outstanding debts!</Text>

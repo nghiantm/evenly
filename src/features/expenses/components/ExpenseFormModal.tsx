@@ -21,6 +21,7 @@ import {
   AlertIcon,
   Box,
   Badge,
+  Skeleton,
   useToast,
   RadioGroup,
   Radio,
@@ -33,10 +34,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { expensesService } from '@/services/expenses';
 import { FormField } from '@/components/forms/FormField';
-import { getErrorMessage } from '@/lib/apiClient';
+import { apiClient, getErrorMessage } from '@/lib/apiClient';
 import { SUPPORTED_CURRENCIES, round2, todayIso, formatCurrency } from '@/lib/utils';
 import { C } from '@/lib/colors';
 import type { GroupDetail, Expense, SplitType, CreateExpenseRequest } from '@/types';
+import { suggestCategory, EXPENSE_CATEGORIES } from '../suggestCategory';
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -47,6 +49,7 @@ const schema = z.object({
   expenseDate: z.string().min(1, 'Date is required'),
   note: z.string().max(500).optional(),
   paidByUserId: z.string().min(1, 'Select who paid'),
+  category: z.string().min(1),
   splitType: z.enum(['EQUAL', 'EXACT', 'PERCENT', 'SHARE']),
   // Per-member fields — keyed by userId
   includedMembers: z.record(z.boolean()),   // for EQUAL
@@ -100,6 +103,7 @@ export function ExpenseFormModal({ isOpen, onClose, group, expense }: ExpenseFor
     resolver: zodResolver(schema),
     defaultValues: {
       description: '',
+      category: 'other',
       currency: group.defaultCurrency,
       totalAmount: 0,
       expenseDate: todayIso(),
@@ -124,6 +128,7 @@ export function ExpenseFormModal({ isOpen, onClose, group, expense }: ExpenseFor
       );
       reset({
         description: expense.description,
+        category: suggestCategory(expense.description),
         currency: expense.currency,
         totalAmount: expense.totalAmount,
         expenseDate: expense.expenseDate,
@@ -138,6 +143,7 @@ export function ExpenseFormModal({ isOpen, onClose, group, expense }: ExpenseFor
     } else {
       reset({
         description: '',
+        category: 'other',
         currency: group.defaultCurrency,
         totalAmount: 0,
         expenseDate: todayIso(),
@@ -153,25 +159,38 @@ export function ExpenseFormModal({ isOpen, onClose, group, expense }: ExpenseFor
   }, [expense, isOpen]);
 
   const [previewRate, setPreviewRate] = useState<number | null>(null);
+  const [isFxLoading, setIsFxLoading] = useState(false);
+  const [isCategorizing, setIsCategorizing] = useState(false);
+
+  const descriptionValue = watch('description');
+  useEffect(() => {
+    setIsCategorizing(true);
+    const timer = setTimeout(() => {
+      setValue('category', suggestCategory(descriptionValue ?? ''));
+      setIsCategorizing(false);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [descriptionValue]);
 
   const selectedCurrency = watch('currency');
   const isForeignCurrency = selectedCurrency !== group.defaultCurrency;
 
   useEffect(() => {
-    if (!isForeignCurrency) { setPreviewRate(null); return; }
+    if (!isForeignCurrency) { setPreviewRate(null); setIsFxLoading(false); return; }
     setPreviewRate(null);
+    setIsFxLoading(true);
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(
-          `https://api.frankfurter.app/latest?from=${selectedCurrency}&to=${group.defaultCurrency}`,
-          { signal: controller.signal }
-        );
-        if (!res.ok) return;
-        const json = await res.json();
-        setPreviewRate(json.rates?.[group.defaultCurrency] ?? null);
+        const { data } = await apiClient.get<{ rate: number }>('/proxy/fx', {
+          params: { from: selectedCurrency, to: group.defaultCurrency },
+          signal: controller.signal,
+        });
+        setPreviewRate(data.rate ?? null);
       } catch {
         // aborted or network error — ignore
+      } finally {
+        setIsFxLoading(false);
       }
     }, 300);
     return () => { clearTimeout(timer); controller.abort(); };
@@ -273,6 +292,7 @@ export function ExpenseFormModal({ isOpen, onClose, group, expense }: ExpenseFor
       totalAmount: values.totalAmount,
       expenseDate: values.expenseDate,
       note: values.note || undefined,
+      category: values.category,
       paidBy: [{ userId: values.paidByUserId, amount: values.totalAmount }],
       splits,
     });
@@ -290,6 +310,18 @@ export function ExpenseFormModal({ isOpen, onClose, group, expense }: ExpenseFor
               {/* Description */}
               <FormField label="Description" error={errors.description?.message} isRequired>
                 <Input {...register('description')} placeholder="e.g. Groceries, Dinner, Rent" autoFocus />
+              </FormField>
+              {/* Category */}
+              <FormField label="Category">
+                {isCategorizing ? (
+                  <Skeleton h={10} borderRadius="md" />
+                ) : (
+                  <Select {...register('category')}>
+                    {EXPENSE_CATEGORIES.map((c) => (
+                      <option key={c} value={c.toLowerCase()}>{c}</option>
+                    ))}
+                  </Select>
+                )}
               </FormField>
 
               {/* Amount + Currency */}
@@ -408,7 +440,7 @@ export function ExpenseFormModal({ isOpen, onClose, group, expense }: ExpenseFor
               type="submit"
               colorScheme="brand"
               isLoading={mutation.isPending}
-              isDisabled={!!exactError || !!percentError || includedIds.length === 0}
+              isDisabled={!!exactError || !!percentError || includedIds.length === 0 || isFxLoading}
               loadingText={isEditing ? 'Saving…' : 'Adding…'}
             >
               {isEditing ? 'Save Changes' : 'Add Expense'}

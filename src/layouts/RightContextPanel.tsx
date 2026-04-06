@@ -282,7 +282,12 @@ function GroupContextPanel({ groupId }: { groupId: string }) {
                 </Text>
               </Box>
             )}
-            {balances.pairwiseDebts.slice(0, 4).map((d, i) => {
+            {Number(balances.transactionsSaved) > 0 && (
+            <Text fontSize="11px" color={C.green}>
+              Simplify debts saves {balances.transactionsSaved} transaction{Number(balances.transactionsSaved) !== 1 ? 's' : ''}
+            </Text>
+          )}
+          {balances.pairwiseDebts.slice(0, 4).map((d, i) => {
               const isMe = d.fromUserId === currentUserId;
               const isMeTo = d.toUserId === currentUserId;
               return (

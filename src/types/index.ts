@@ -98,6 +98,7 @@ export interface Expense {
   convertedAmount: number | null;
   expenseDate: string;
   note: string | null;
+  category: string | null;
   createdBy: string;
   paidBy: ExpensePayment[];
   splits: ExpenseSplit[];
@@ -121,6 +122,7 @@ export interface CreateExpenseRequest {
   totalAmount: number;
   expenseDate: string;
   note?: string;
+  category?: string;
   paidBy: ExpensePayment[];
   splits: Array<{
     userId: string;
@@ -151,6 +153,7 @@ export interface GroupBalances {
   currency: string;
   userBalances: UserBalance[];
   pairwiseDebts: PairwiseDebt[];
+  transactionsSaved: number;
 }
 
 export interface NetByGroup {

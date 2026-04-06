@@ -75,6 +75,7 @@ export function EditGroupModal({ isOpen, onClose, group, hasExpenses }: EditGrou
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['groups', group.groupId] });
       qc.invalidateQueries({ queryKey: ['groups'] });
+      qc.invalidateQueries({ queryKey: ['balances', group.groupId] });
       toast({ title: 'Group updated', status: 'success', duration: 3000 });
       onClose();
     },

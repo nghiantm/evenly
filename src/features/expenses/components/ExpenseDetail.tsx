@@ -39,10 +39,14 @@ export function ExpenseDetailModal({
   const canEdit =
     expense.createdBy === currentUserId || isAtLeastAdmin(group.myRole);
 
+  const getMember = (userId: string) => group.members.find((m) => m.userId === userId);
+
   const getMemberName = (userId: string) => {
     if (userId === currentUserId) return 'You';
-    return group.members.find((m) => m.userId === userId)?.displayName ?? userId.slice(0, 8);
+    return getMember(userId)?.displayName ?? userId.slice(0, 8);
   };
+
+  const getMemberAvatar = (userId: string) => getMember(userId)?.avatarUrl;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="md">
@@ -69,6 +73,12 @@ export function ExpenseDetailModal({
               </VStack>
             </HStack>
 
+            {expense.category && (
+              <Badge colorScheme="blue" alignSelf="start" textTransform="capitalize">
+                {expense.category}
+              </Badge>
+            )}
+
             {expense.note && (
               <Text fontSize="sm" color="gray.600" bg="gray.50" p={3} borderRadius="md">
                 {expense.note}
@@ -87,6 +97,7 @@ export function ExpenseDetailModal({
                   <HStack>
                     <UserAvatar
                       displayName={getMemberName(p.userId)}
+                      avatarUrl={getMemberAvatar(p.userId)}
                       size="xs"
                     />
                     <Text fontSize="sm">{getMemberName(p.userId)}</Text>
@@ -111,7 +122,7 @@ export function ExpenseDetailModal({
               {expense.splits.map((s) => (
                 <HStack key={s.userId} justify="space-between">
                   <HStack>
-                    <UserAvatar displayName={getMemberName(s.userId)} size="xs" />
+                    <UserAvatar displayName={getMemberName(s.userId)} avatarUrl={getMemberAvatar(s.userId)} size="xs" />
                     <Text fontSize="sm">{getMemberName(s.userId)}</Text>
                   </HStack>
                   <CurrencyAmount amount={s.amountOwed} currency={expense.currency} fontSize="sm" />
